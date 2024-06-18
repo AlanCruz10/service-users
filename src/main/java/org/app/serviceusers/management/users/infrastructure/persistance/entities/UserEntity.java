@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.validator.constraints.UniqueElements;
 
 @Entity
 @Getter
@@ -29,11 +30,11 @@ public class UserEntity {
 
     @NotBlank
     @Email
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String email;
 
     @Size(min = 8)
-    @Column(nullable = false, length = 8)
+    @Column(nullable = false)
     private String password;
 
 }
