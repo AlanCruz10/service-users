@@ -28,4 +28,9 @@ public class UserServiceAdapterImpl implements IUserInputRepository {
         return mapper.toDomain(repository.findById(id).orElseThrow(RuntimeException::new));
     }
 
+    @Override
+    public User findByEmail(String email) {
+        return mapper.toDomain(repository.findByEmail(email).orElseThrow(RuntimeException::new));
+    }
+
 }
