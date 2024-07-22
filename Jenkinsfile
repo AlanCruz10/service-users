@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        WORKSPACE_DIR = "${env.WORKSPACE}/workspace/lang-speak-users-service"
+        WORKSPACE_DIR = "${env.WORKSPACE}"
         DOCKER_IMAGE_NAME = "lang-speak-users-service-prod-deploy"
         DOCKER_IMAGE_TAG = "${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
         REMOTE_USER = "ubuntu"
@@ -17,8 +17,6 @@ pipeline {
         stage('Prepare Configurations Pre-Deploy') {
             steps {
                 script {
-                    sh "ls ${env.WORKSPACE}"
-                    sh 'ls /var/lib/jenkins/workspace/lang-speak-users-prod-cicd/'
                     // Copy the application-dev.properties file to the src/main/resources directory
                     withCredentials([file(credentialsId: 'file-application-properties', variable: 'FILE_APPLICATION_PROPERTIES')]) {
                         sh "cp ${FILE_APPLICATION_PROPERTIES} ${WORKSPACE_DIR}/src/main/resources/application-dev.properties"
