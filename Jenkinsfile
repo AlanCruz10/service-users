@@ -58,11 +58,6 @@ pipeline {
 
     }
     post {
-        successful {
-            script {
-                notifyBuild(currentBuild.result)
-            }
-        }
         failure {
             script {
                 notifyBuild(currentBuild.result)
