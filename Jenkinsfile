@@ -20,7 +20,7 @@ pipeline {
                     // Copy the application-dev.properties file to the src/main/resources directory
                     withCredentials([file(credentialsId: 'file-application-properties', variable: 'FILE_APPLICATION_PROPERTIES')]) {
                         script {
-                            sh 'sudo cp $FILE_APPLICATION_PROPERTIES $WORKSPACE_DIR/src/main/resources/application-dev.properties'
+                            sh 'cp $FILE_APPLICATION_PROPERTIES $WORKSPACE_DIR/src/main/resources/application-dev.properties'
                         }
                     }
                 }
