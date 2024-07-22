@@ -20,7 +20,7 @@ pipeline {
                     // Copy the application-dev.properties file to the src/main/resources directory
                     withCredentials([file(credentialsId: 'file-application-properties', variable: 'FILE_APPLICATION_PROPERTIES')]) {
                         script {
-                            sh 'cp $FILE_APPLICATION_PROPERTIES $WORKSPACE_DIR/src/main/resources/application-dev.properties'
+                            sh "cp ${FILE_APPLICATION_PROPERTIES} ${WORKSPACE_DIR}/src/main/resources/application-dev.properties"
                         }
                     }
                 }
@@ -57,41 +57,41 @@ pipeline {
         }
 
     }
-    post {
-        failure {
-            script {
-                notifyBuild(currentBuild.result)
-            }
-        }
-    }
+//     post {
+//         failure {
+//             script {
+//                 notifyBuild(currentBuild.result)
+//             }
+//         }
+//     }
 }
 
-def notifyBuild(String buildStatus = 'STARTED') {
-
-    // build status of null means successful
-    buildStatus = buildStatus ?: 'SUCCESSFUL'
-
-    // Default values
-    def colorName = 'RED'
-    def colorCode = '#FF0000'
-    def now = new Date()
-
-    // message
-    def subject = "${buildStatus}, Job: ${env.JOB_NAME} BACKEND - Deployment Sequence: [${env.BUILD_NUMBER}] "
-    def summary = "${subject} - Check On: (${env.BUILD_URL}) - Time: ${now}"
-    def subject_email = "Spring boot Deployment"
-    def details = """
-        <p>${buildStatus} JOB </p>
-        <p>Job: ${env.JOB_NAME} - Deployment Sequence: [${env.BUILD_NUMBER}] - Time: ${now}</p>
-        <p>Check console output at "<a href="${env.BUILD_URL}">${env.JOB_NAME}</a>"</p>
-        """
-
-    // Email notification
-    emailext (
-        to: "213376@ids.upchiapas.edu.mx",
-        subject: subject_email,
-        body: details,
-        recipientProviders: [[$class: 'DevelopersRecipientProvider']]
-    )
-
-}
+// def notifyBuild(String buildStatus = 'STARTED') {
+//
+//     // build status of null means successful
+//     buildStatus = buildStatus ?: 'SUCCESSFUL'
+//
+//     // Default values
+//     def colorName = 'RED'
+//     def colorCode = '#FF0000'
+//     def now = new Date()
+//
+//     // message
+//     def subject = "${buildStatus}, Job: ${env.JOB_NAME} BACKEND - Deployment Sequence: [${env.BUILD_NUMBER}] "
+//     def summary = "${subject} - Check On: (${env.BUILD_URL}) - Time: ${now}"
+//     def subject_email = "Spring boot Deployment"
+//     def details = """
+//         <p>${buildStatus} JOB </p>
+//         <p>Job: ${env.JOB_NAME} - Deployment Sequence: [${env.BUILD_NUMBER}] - Time: ${now}</p>
+//         <p>Check console output at "<a href="${env.BUILD_URL}">${env.JOB_NAME}</a>"</p>
+//         """
+//
+//     // Email notification
+//     emailext (
+//         to: "213376@ids.upchiapas.edu.mx",
+//         subject: subject_email,
+//         body: details,
+//         recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+//     )
+//
+// }
