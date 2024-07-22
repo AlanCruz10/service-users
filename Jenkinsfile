@@ -17,7 +17,7 @@ pipeline {
         stage('Prepare Configurations Pre-Deploy') {
             steps {
                 script {
-                    sh "ls ${WORKSPACE_DIR}"
+                    sh "ls ${env.WORKSPACE}"
                     sh 'ls /var/lib/jenkins/workspace/lang-speak-users-prod-cicd/'
                     // Copy the application-dev.properties file to the src/main/resources directory
                     withCredentials([file(credentialsId: 'file-application-properties', variable: 'FILE_APPLICATION_PROPERTIES')]) {
