@@ -1,9 +1,12 @@
 package org.app.serviceusers.management.users.infrastructure.configurations.security;
 
 import io.jsonwebtoken.security.Keys;
+import org.app.serviceusers.management.users.application.ports.outputs.ICredentialPortOutputService;
+import org.app.serviceusers.management.users.application.ports.outputs.IUserPortOutputService;
 import org.app.serviceusers.management.users.infrastructure.configurations.jwt.JwtConfiguration;
-import org.app.serviceusers.management.users.infrastructure.configurations.security.filters.JwtAuthenticationFilter;
+import org.app.serviceusers.management.users.infrastructure.configurations.security.exceptions.FailedAuthenticationEntryPointException;
 import org.app.serviceusers.management.users.infrastructure.configurations.security.filters.JwtAuthorizationFilter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -13,6 +16,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.crypto.SecretKey;
 
@@ -20,17 +24,16 @@ import javax.crypto.SecretKey;
 @EnableWebSecurity
 public class SecurityConfiguration {
 
-    private final AuthenticationManager authenticationManager;
-
-//    private final JwtAuthorizationFilter jwtAuthorizationFilter;
+    private final FailedAuthenticationEntryPointException authenticationEntryPoint;
 
     private final JwtConfiguration jwtConfiguration;
 
-    public SecurityConfiguration(AuthenticationManager authenticationManager, JwtConfiguration jwtConfiguration) {
-//        this.jwtAuthorizationFilter = jwtAuthorizationFilter;
-        this.authenticationManager = authenticationManager;
-//        this.secretKey = secretKey;
+    private final ICredentialPortOutputService credentialPortOutputService;
+
+    public SecurityConfiguration(@Qualifier("authenticationEntryPoint") FailedAuthenticationEntryPointException authenticationEntryPoint, JwtConfiguration jwtConfiguration, ICredentialPortOutputService credentialPortOutputService) {
+        this.authenticationEntryPoint = authenticationEntryPoint;
         this.jwtConfiguration = jwtConfiguration;
+        this.credentialPortOutputService = credentialPortOutputService;
     }
 
     @Bean
@@ -40,6 +43,7 @@ public class SecurityConfiguration {
         configureSessionManagement(httpSecurity);
         configureRequestAuthorization(httpSecurity);
         configureFilters(httpSecurity);
+        configurationEntryPoint(httpSecurity);
         return httpSecurity.httpBasic(Customizer.withDefaults()).build();
     }
 
@@ -58,32 +62,35 @@ public class SecurityConfiguration {
 
     private void configureRequestAuthorization(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/user/**").permitAll()
-                .anyRequest().authenticated());
+                .requestMatchers(
+                        "/users/api/v1/create",
+                        "/access/api/v1/log-in")
+                .permitAll()
+                .anyRequest()
+                .authenticated());
     }
 
-    private void configureFilters(HttpSecurity http) {
-        JwtAuthenticationFilter userAuthenticationFilter = new JwtAuthenticationFilter(secretKey(), jwtConfiguration);
-        userAuthenticationFilter.setAuthenticationManager(authenticationManager);
-        userAuthenticationFilter.setFilterProcessesUrl("/login");
+    private void configureFilters(HttpSecurity httpSecurity) {
+//        JwtAuthenticationFilter userAuthenticationFilter = new JwtAuthenticationFilter(secretKey(), jwtConfiguration);
+//        userAuthenticationFilter.setAuthenticationManager(authenticationManager);
+//        userAuthenticationFilter.setFilterProcessesUrl("/logIn");
+//        httpSecurity.addFilter(userAuthenticationFilter)
+//                .addFilterBefore(jwtAuthorizationFilter(), JwtAuthenticationFilter.class);
+        httpSecurity.addFilterBefore(jwtAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);
+    }
 
-        http.addFilter(userAuthenticationFilter)
-                .addFilterBefore(jwtAuthorizationFilter(), JwtAuthenticationFilter.class);
+    private void configurationEntryPoint(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity.exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint));
     }
 
     @Bean
     public JwtAuthorizationFilter jwtAuthorizationFilter() {
-        return new JwtAuthorizationFilter(secretKey());
+        return new JwtAuthorizationFilter(secretKey(), credentialPortOutputService);
     }
 
     @Bean
     public SecretKey secretKey() {
         return Keys.hmacShaKeyFor(jwtConfiguration.getSecretKey().getBytes());
     }
-
-//    @Bean
-//    public PasswordEncoder passwordEncoder() {
-//        return new BCryptPasswordEncoder();
-//    }
 
 }

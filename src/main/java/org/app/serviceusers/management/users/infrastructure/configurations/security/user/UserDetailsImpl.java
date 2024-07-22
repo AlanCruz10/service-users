@@ -1,7 +1,7 @@
 package org.app.serviceusers.management.users.infrastructure.configurations.security.user;
 
 import lombok.AllArgsConstructor;
-import org.app.serviceusers.management.users.infrastructure.persistance.entities.UserEntity;
+import org.app.serviceusers.management.users.infrastructure.adapters.ports.outputs.persistance.entities.UserEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,12 +21,12 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public String getPassword() {
-        return user.getPassword();
+        return user.getCredential().getPassword();
     }
 
     @Override
     public String getUsername() {
-        return user.getEmail();
+        return user.getCredential().getEmail();
     }
 
     @Override
@@ -50,7 +50,11 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     public String getName() {
-        return user.getUsername();
+        return user.getUserProfile().getUsername();
+    }
+
+    public String getUuid() {
+        return user.getUserProfile().getUuid();
     }
 
 }

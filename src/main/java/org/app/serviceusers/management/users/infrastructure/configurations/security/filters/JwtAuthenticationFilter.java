@@ -13,10 +13,11 @@ import org.app.serviceusers.management.users.infrastructure.configurations.secur
 import org.app.serviceusers.management.users.infrastructure.configurations.security.user.UserDetailsImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
@@ -36,17 +37,21 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) {
-
-        try {
-            UserAuth userAuth = new ObjectMapper().readValue(request.getReader(), UserAuth.class);
-            UsernamePasswordAuthenticationToken usernamePAT = new UsernamePasswordAuthenticationToken(
-                    userAuth.getUsername(),
-                    userAuth.getPassword());
-            return getAuthenticationManager().authenticate(usernamePAT);
-        } catch (IOException e) {
-            throw new RuntimeException(e.getLocalizedMessage());
+        if (!request.getMethod().equals("POST")) {
+            throw new AuthenticationServiceException("Method not supported: " + request.getMethod());
         }
 
+        UserAuth userAuth = null;
+        try {
+            userAuth = new ObjectMapper().readValue(request.getReader(), UserAuth.class);
+        } catch (IOException e) {
+            throw new AuthenticationServiceException("Invalid request body");
+        }
+
+        UsernamePasswordAuthenticationToken usernamePAT = new UsernamePasswordAuthenticationToken(
+                userAuth.getEmail(),
+                userAuth.getPassword());
+        return getAuthenticationManager().authenticate(usernamePAT);
     }
 
     @Override
@@ -54,33 +59,21 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                                             HttpServletResponse response,
                                             FilterChain chain,
                                             Authentication authentication) throws IOException, ServletException {
-
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
 
-        Date expirationDate = Date.valueOf(LocalDate.now().plusDays(jwtConfiguration.getTokenExpiration()));
+        String token = generateToken(userPrincipal);
 
-        String token = Jwts.builder()
-                .setSubject(userPrincipal.getUsername())
-                .claim("authorities", userPrincipal.getAuthorities())
-                .setIssuedAt(new java.util.Date())
-                .setExpiration(expirationDate)
-                .signWith(secretKey)
-                .compact();
-
-        Date refreshTokenExpirationDate = Date.valueOf(LocalDate.now().plusDays(jwtConfiguration.getRefreshTokenExpiration()));
-
-        String refreshToken = Jwts.builder()
-                .setSubject(userPrincipal.getUsername())
-                .setIssuedAt(new java.util.Date())
-                .setExpiration(refreshTokenExpirationDate)
-                .signWith(secretKey).compact();
+        String refreshToken = generateRefreshToken(userPrincipal);
 
         response.addHeader("Authorization", jwtConfiguration.getTokenPrefix() + token);
-
-        JwtResponse jwtResponse = JwtResponse.builder().accessJwt(null).refreshJwt(refreshToken).build();
+        response.addHeader("Refresh-Token", jwtConfiguration.getTokenPrefix() + refreshToken);
 
         BaseResponse baseResponse = BaseResponse.builder()
-                .data(jwtResponse)
+                .data(new JwtResponse(
+                        userPrincipal.getUuid(),
+                        userPrincipal.getName(),
+                        jwtConfiguration.getTokenPrefix() + token,
+                        null))
                 .message("Successfully authenticated")
                 .success(Boolean.TRUE)
                 .status(HttpStatus.OK.value())
@@ -91,7 +84,41 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         response.getWriter().flush();
 
         super.successfulAuthentication(request, response, chain, authentication);
+    }
 
+    @Override
+    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException, ServletException {
+        BaseResponse baseResponse = BaseResponse.builder()
+                .message("Failed to authenticate. " + failed.getLocalizedMessage())
+                .success(Boolean.FALSE)
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .httpStatus(HttpStatus.UNAUTHORIZED).build();
+
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.getWriter().write(new ObjectMapper().writeValueAsString(baseResponse));
+        response.getWriter().flush();
+    }
+
+    private String generateToken(UserDetailsImpl user) {
+        Date expirationDate = Date.valueOf(LocalDate.now().plusDays(jwtConfiguration.getTokenExpiration()));
+        return Jwts.builder()
+                .setSubject(user.getUsername())
+                .claim("authorities", user.getAuthorities())
+                .setIssuedAt(new java.util.Date())
+                .setExpiration(expirationDate)
+                .signWith(secretKey)
+                .compact();
+    }
+
+    private String generateRefreshToken(UserDetailsImpl user) {
+        Date refreshExpirationDate = Date.valueOf(LocalDate.now().plusDays(jwtConfiguration.getRefreshTokenExpiration()));
+        return Jwts.builder()
+                .setSubject(user.getUsername())
+                .setIssuedAt(new java.util.Date())
+                .setExpiration(refreshExpirationDate)
+                .signWith(secretKey)
+                .compact();
     }
 
 }

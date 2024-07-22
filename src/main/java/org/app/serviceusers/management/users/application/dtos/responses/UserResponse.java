@@ -11,11 +11,17 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-@JsonInclude(JsonInclude.Include.NON_NULL)
+//@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserResponse {
 
     private String uuid;
 
     private String username;
+
+    private String email;
+
+    private String city;
+
+    private String profilePicture;
 
 }

@@ -60,7 +60,7 @@ public class JwtService implements IJwtOutputRepository {
 
         JwtResponse jwtResponse = JwtResponse.builder()
                 .refreshJwt(newRefreshToken)
-                .accessJwt(token).build();
+                .token(token).build();
 
         return BaseResponse.builder()
                 .data(jwtResponse)
