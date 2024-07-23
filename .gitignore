@@ -34,3 +34,7 @@ build/
 
 ### ENV ###
 src/main/resources/application-dev.properties
+
+### DEPLOY ###
+Dockerfile
+Jenkinsfile
